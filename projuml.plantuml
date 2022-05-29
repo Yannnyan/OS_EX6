@@ -1,0 +1,5 @@
+@startuml lslsl
+
+hello -> client;
+
+@enduml

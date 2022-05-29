@@ -1,6 +1,8 @@
 #ifndef QUEUE_HPP_
 #define QUEUE_HPP_
 
+#include <pthread.h>
+
 
 namespace ex6
 {
@@ -19,8 +21,14 @@ namespace ex6
                     Node(void * node_value);
                     void * current;
                     Node * next;
+                    
             };
             Node * head;
+            pthread_mutex_t lock;
+            pthread_cond_t cond;
+            size_t size;
+
+            void * private_deQ();
         public:
             /**
              * @brief Construct a new queue object
@@ -37,7 +45,7 @@ namespace ex6
              * 
              * @return queue 
              */
-            queue createQ();
+            static queue createQ();
             /**
              * @brief destroy the current queue
              * 
@@ -55,6 +63,7 @@ namespace ex6
              * @return void* 
              */
             void * deQ();
+
     };
 }
 
