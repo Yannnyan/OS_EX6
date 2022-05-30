@@ -3,19 +3,19 @@
 using namespace ex6;
 
 template<typename T>
-ex6::Singleton<T> * ex6::Singleton<T>::Instance()
+ex6::Singleton<T> * ex6::Singleton<T>::Instance(T const & value)
 {
-    if(!created)
+    if(instance == nullptr)
     {
-        created = true;
-        instance = &Singleton<T>();
+        instance = &Singleton<T>(value);
     }
+    // if an instance already exists then dont care and return the singleton already exists.
     return instance;
 }
 template<typename T>
 void ex6::Singleton<T>::Destroy()
 {
-    if(!created)
+    if(instance == nullptr)
     {
         // throw exception
         throw("cannot destroy singleton that wasn't created.");
@@ -28,9 +28,10 @@ T & ex6::Singleton<T>::get_object()
     return this->obj;
 }
 template<typename T>
-void ex6::Singleton<T>::set_object(T & value)
+ex6::Singleton<T>::Singleton(T const & value)
 {
     this->obj = value;
+    this->instance = this;
 }
 
 

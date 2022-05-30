@@ -25,11 +25,14 @@ int main()
         perror("mmap failed");
         exit(1);
     }
-    Singleton<void *> * singleton = Singleton<void *>::Instance();
-    singleton->set_object(pointer);
-    
-    Singleton<void *> * singleton1 = Singleton<void *>::Instance();
-    Singleton<void *> * singleton2 = Singleton<void *>::Instance();
+    Singleton<void *> * singleton = Singleton<void *>::Instance(pointer);
+    // some random not equal pointers
+    char * pointer1 = (char *) pointer;
+    pointer1 += 100;
+    int * pointer2 = (int *)pointer;
+    pointer2 += 1000;    
+    Singleton<void *> * singleton1 = Singleton<void *>::Instance(pointer1);
+    Singleton<void *> * singleton2 = Singleton<void *>::Instance(pointer2);
     // crashes if one doesn't work
     assert(singleton == singleton1);
     assert(singleton == singleton2);

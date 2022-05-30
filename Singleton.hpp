@@ -5,16 +5,17 @@ namespace ex6
     template<class T>
     class Singleton
     {
-        private:
+        protected:
             T obj;
             static Singleton<T> * instance;
-            static bool created;
-            Singleton<T>();
+            Singleton<T>(T const & value);
         public:
+            Singleton(Singleton & single) = delete;
+            void operator=(const Singleton & single) = delete;
+
             // getters and setters
             T &get_object();
-            void set_object(T & value);
-            static Singleton<T> * Instance();
+            static Singleton<T> * Instance(T const & value);
             void Destroy();
     };
 }
