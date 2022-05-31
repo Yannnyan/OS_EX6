@@ -136,14 +136,13 @@ int main()
     ac_st.addrlen = &addrlen;
     ac_st.reactor = reactor;
     ac_st.remoteaddr = &remoteaddr;
-    ac_st.listener_fd = listener;
     strncpy(ac_st.remoteIP, remoteIP, INET6_ADDRSTRLEN);
 
     read_struct rd_st;
     rd_st.buffer = buf;
     rd_st.reactor = reactor;
     rd_st.buffersize = sizeof buf;
-    rd_st.listener_fd = listener;
+    
 
     FD_ZERO(&read_fds);
     // get us a socket and bind it
@@ -159,6 +158,8 @@ int main()
     for(p = ai; p != NULL; p = p->ai_next) 
     {
         listener = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+        rd_st.listener_fd = listener;
+        ac_st.listener_fd = listener;
         if (listener < 0) 
         {
             continue;
