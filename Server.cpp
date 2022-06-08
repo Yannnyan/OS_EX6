@@ -18,7 +18,7 @@
 #include <stdbool.h>
 #include "queue.hpp"
 #include "ActiveObject.hpp"
-
+#include "Guard.hpp"
 
 #define PORT "3490"  // the port users will be connecting to
 
@@ -26,7 +26,7 @@
 
 #define BUFFERSIZE 1024
 
-
+using namespace ex6;
 
 void sigchld_handler(int s)
 {
@@ -48,62 +48,24 @@ void *get_in_addr(struct sockaddr *sa)
 
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
-void * receive_message(void * sockfd)
-{
-    char * buffer = (char *)malloc(BUFFERSIZE);
-    if (recv((*(int *)sockfd), buffer, BUFFERSIZE, 0) == -1)
-        perror("recv");
-    return buffer;
-}
+
 void * send_message(void * arg)
 {
-    ex6::AO::queue_member * args = (ex6::AO::queue_member *) arg;
-    if(send(args->sockfd, args->str, strlen(args->str) + 1, 0))
+    capsula * capsul = (capsula *) arg;
+    char * buffer = capsul->getbuffer();
+    int sockfd = capsul->getsockfd();
+    printf("[SERVER] Sending message to client.\n");
+    if(send(sockfd, buffer, strlen(buffer) +1, 0) == -1)
     {
-        perror("send");
+        perror("send failed.");
     }
     return nullptr;
 }
 
-void * active_object1(void * arg)
+void * insert_to_queue(void * caps)
 {
-    ex6::AO::queue_member * args = (ex6::AO::queue_member *) arg;
-    char * buffer;
-    ex6::AO ao1(args->q1, &receive_message, &ex6::insert_to_queue2);
-    ao1.init_thread(args->thread1);
-    // should be constantly receiving messages and transfering them to q2
-    while(true)
-    {
-        args->num_active_object = ex6::AO::active_objects::active_obj1;
-        args->str = nullptr;
-        args->q1->enQ(args);
-        ao1.new_AO(args->q1, &receive_message, &ex6::insert_to_queue2);
-    }
-    return nullptr;
-}
-
-void * active_object2(void * arg)
-{
-    ex6::AO::queue_member * args = (ex6::AO::queue_member *) arg;
-    char * buffer;
-    ex6::AO ao2(args->q2, &ex6::caesar_cipher_1, &ex6::insert_to_queue3);
-    ao2.init_thread(args->thread2);
-    while(true)
-    {
-        ao2.new_AO(args->q2, &ex6::caesar_cipher_1, &ex6::insert_to_queue3);
-    }
-}
-
-void * active_object3(void * arg)
-{
-    ex6::AO::queue_member * args = (ex6::AO::queue_member *) arg;
-    char * buffer;
-    ex6::AO ao3(args->q2, &ex6::convert_opposite_case_letters, &send_message);
-    ao3.init_thread(args->thread2);
-    while(true)
-    {
-        ao3.new_AO(args->q2, &ex6::convert_opposite_case_letters, &send_message);
-    }
+    capsula * capsul = (capsula *) caps;
+    capsul->insert_to_queue(capsul);
     return nullptr;
 }
 
@@ -118,17 +80,11 @@ int main(void)
     char s[INET6_ADDRSTRLEN];
     int rv;
 
-    pthread_t * buffer_ao1;
-    pthread_t * buffer_ao2;
-    pthread_t * buffer_ao3;
     pthread_t thread_pool[BACKLOG]; // TID array by index, 10 members
     bool active_threads[BACKLOG]; // array of booleans
     //int thread_cursor = 0;
     memset(thread_pool, 0, sizeof(thread_pool)); // zero out all cells
     memset(active_threads, 0, sizeof(active_threads));
-    ex6::queue q1 = ex6::queue::createQ();
-    ex6::queue q2 = ex6::queue::createQ();
-    ex6::queue q3 = ex6::queue::createQ();
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;
@@ -197,15 +153,17 @@ int main(void)
             get_in_addr((struct sockaddr *)&their_addr),
             s, sizeof s);
         printf("server: got connection from %s\n", s);
-        // this struct is freed later by the third active object
-        ex6::AO::queue_member * args = (ex6::AO::queue_member *) new ex6::AO::queue_member();
-        args->q1 = &q1;
-        args->q2 = &q2;
-        args->q3 = &q3;
-        args->sockfd = new_fd;
-        pthread_create(args->thread1, NULL, &active_object1, &args);
-        pthread_create(args->thread2, NULL, &active_object2, &args);
-        pthread_create(args->thread3, NULL, &active_object3, &args);
+        queue * q2 = ex6::queue::createQ();
+        queue * q3 = ex6::queue::createQ();
+        ex6::AO * ao1 = new AO(q2); 
+        ex6::AO * ao2 = new AO(q3);
+        ex6::AO * ao3 = new AO(q3);
+
+        ao1->new_listenAO(new_fd, q3);
+        // convert letters put in q3
+        ao2->new_AO(q2, &convert_opposite_case_letters, &insert_to_queue);
+        // shift by one right send to client
+        ao3->new_AO(q3, &caesar_cipher_1, &send_message);
     }
 
     return 0;

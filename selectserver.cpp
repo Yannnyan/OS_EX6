@@ -9,7 +9,7 @@
 #include <netdb.h>
 #include "Reactor.hpp"
 
-#define PORT "9034" // port we're listening on
+#define PORT "3490" // port we're listening on
 // get sockaddr, IPv4 or IPv6:
 using namespace ex6;
 
@@ -48,10 +48,12 @@ void *get_in_addr(struct sockaddr *sa)
  */
 void handle_client_data(void * read_st)
 {
+
     read_struct * rd_st = (read_struct *) read_st;
     int nbytes;
     // handle data from a client
-    if ((nbytes = recv(rd_st->fd, rd_st->buffer, sizeof rd_st->buffersize, 0)) <= 0) 
+    printf("[SERVER] reading message from fd %d\n" ,rd_st->fd);
+    if ((nbytes = recv(rd_st->fd, rd_st->buffer, rd_st->buffersize, 0)) <= 0) 
     {
         // got error or connection closed by client
         if (nbytes == 0) 
@@ -68,12 +70,14 @@ void handle_client_data(void * read_st)
     } 
     else 
     {
+        printf("[SERVER] message : %s\n", rd_st->buffer);
+        printf("[SERVER] sending message to all users connected. highest fd is : %d\n", rd_st->reactor->highest_fd);
         // we got some data from a client
         for(int j = 0; j <= rd_st->reactor->highest_fd; j++) {
         // send to everyone!
             if (FD_ISSET(j, &rd_st->reactor->fds)) {
             // except the listener and ourselves
-                if (j != rd_st->listener_fd && j != rd_st->fd) {
+                if (j != rd_st->listener_fd ) {
                     if (send(j, rd_st->buffer, nbytes, 0) == -1) 
                     {
                         perror("send");
@@ -93,6 +97,7 @@ void accept_connection(void * acc_st)
     accept_struct * ac_st = (accept_struct *) acc_st;
      // handle new connections
     *ac_st->addrlen = sizeof ac_st->remoteaddr;
+    printf("[SERVER] Accepting new connections . . .\n");
     int newfd = accept(ac_st->listener_fd, (struct sockaddr *)ac_st->remoteaddr, ac_st->addrlen);
     if (newfd == -1)
     {
@@ -101,7 +106,7 @@ void accept_connection(void * acc_st)
     else 
     {
         FD_SET(newfd, &ac_st->reactor->fds); // add to master set
-        InstallHandler(ac_st->reactor, &handle_client_data, newfd);
+        ex6::InstallHandler(ac_st->reactor, &handle_client_data, newfd);
         if (newfd > ac_st->reactor->highest_fd) 
         { // keep track of the max
             ac_st->reactor->highest_fd = newfd;
@@ -116,7 +121,7 @@ void accept_connection(void * acc_st)
 
 int main()
 {   
-    Reactor * reactor = (Reactor *) newReactor();
+    Reactor * reactor = (Reactor *) ex6::newReactor();
     fd_set read_fds; // temp file descriptor list for select()
 
     int listener; // listening socket descriptor
@@ -157,6 +162,7 @@ int main()
     }
     for(p = ai; p != NULL; p = p->ai_next) 
     {
+        printf("[SERVER] Creating socket.\n");
         listener = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
         rd_st.listener_fd = listener;
         ac_st.listener_fd = listener;
@@ -189,12 +195,13 @@ int main()
     }
     // add the listener to the master set
     FD_SET(listener, &reactor->fds);
-    InstallHandler(reactor, &accept_connection, listener);
+    ex6::InstallHandler(reactor, &accept_connection, listener);
     // keep track of the biggest file descriptor
     reactor->highest_fd = listener; // so far, it's this one
     // main loop
     for(;;) {
         read_fds = reactor->fds; // copy it
+        printf("[SERVER] Waiting for users to be active.\n");
         if (select(reactor->highest_fd + 1, &read_fds, NULL, NULL, NULL) == -1) {
         perror("select");
         exit(4);
@@ -205,11 +212,13 @@ int main()
             { // we got one!!
                 if (i == listener) 
                 {
+                    printf("[SERVER] Got a new connection from user.\n");
                     // call accept_connection
                    reactor->handlers[i](&ac_st);
                 } 
                 else 
                 {
+                    printf("[SERVER] Got message in fd %d.\n", i);
                     rd_st.fd = i;
                     reactor->handlers[i](&rd_st);
                 } // END handle data from client

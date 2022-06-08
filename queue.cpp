@@ -1,7 +1,10 @@
 #include "queue.hpp"
 #include "ActiveObject.hpp"
+#include <stdio.h>
 
 using namespace ex6;
+
+// pthread_cond_t ex6::queue::cond;
 
 ex6::queue::Node::Node(void * node_value)
 {
@@ -14,7 +17,7 @@ ex6::queue::queue()
     this->head = nullptr;
     this->lock = PTHREAD_MUTEX_INITIALIZER;
     this->size = 0;
-    pthread_cond_init(&this->cond, NULL);
+    pthread_cond_init(&cond, NULL);
 }
 ex6::queue::~queue()
 {
@@ -28,9 +31,9 @@ ex6::queue::~queue()
     }
 }
 
-queue ex6::queue::createQ()
+queue * ex6::queue::createQ()
 {
-    return queue();
+    return new queue();
 }
 void ex6::queue::destroyQ()
 {
@@ -39,15 +42,14 @@ void ex6::queue::destroyQ()
 void ex6::queue::enQ(void * member)
 {
     pthread_mutex_lock(&this->lock);
-    if(this->size == 0)
-    {
-        pthread_cond_signal(&this->cond);
-    }
-    this->size+=1;
     // if head is null
-    if(!this->head)
+    this->size+=1;
+    if(this->head==nullptr)
     {
         this->head = new Node(member);
+        pthread_cond_broadcast(&cond);
+        pthread_mutex_unlock(&this->lock);
+        return;
     }
     // find the tail of the list
     Node * curr = this->head;
@@ -57,17 +59,18 @@ void ex6::queue::enQ(void * member)
     }
     // insert
     curr->next = new Node(member);
-    
+    pthread_cond_broadcast(&cond);
     pthread_mutex_unlock(&this->lock);
 }
 
 void * ex6::queue::deQ()
 {
-    pthread_mutex_lock(&this->lock);  
-    while(this->size == 0)
+    pthread_mutex_lock(&this->lock);
+    while(this->size == 0 || !this->head)
     {
-        pthread_cond_wait(&this->cond, &this->lock);
+        pthread_cond_wait(&cond, &this->lock);
     }
+    // pthread_mutex_lock(&this->lock);
     void * ret = this->private_deQ();
     pthread_mutex_unlock(&this->lock);
     return ret;
@@ -80,7 +83,14 @@ void * ex6::queue::private_deQ()
 }
 
 
+void * ex6::queue::top()
+{
+    return this->head->current;
+}
 
 
-
+size_t ex6::queue::Size()
+{
+    return this->size;
+}
 

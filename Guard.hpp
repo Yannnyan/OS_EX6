@@ -1,3 +1,6 @@
+#ifndef GUARD_HPP_
+#define GUARD_HPP_
+
 #include <pthread.h>
 
 
@@ -18,8 +21,6 @@ namespace ex6
         private:
             // lock for the guard
             static pthread_mutex_t lock;
-            // 1 for true 0 for false
-            static bool initialized;
         public:
                 /**
          * @brief Construct a new ex6::Guard::Guard object
@@ -35,7 +36,7 @@ namespace ex6
 }
 
 
-
+#endif
 
 
 

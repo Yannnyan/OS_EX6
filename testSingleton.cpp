@@ -43,6 +43,7 @@ int main()
 
     assert(singleton->get_object() == singleton1->get_object());
     assert(singleton->get_object() == singleton2->get_object());
+    printf("all works, now unlinking and closing file, and unmapping memory.\n");
     munmap(pointer, 10);
     close(fd);
     unlink("file.txt");

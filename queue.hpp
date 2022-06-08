@@ -45,7 +45,7 @@ namespace ex6
              * 
              * @return queue 
              */
-            static queue createQ();
+            static queue* createQ();
             /**
              * @brief destroy the current queue
              * 
@@ -63,7 +63,20 @@ namespace ex6
              * @return void* 
              */
             void * deQ();
-
+            /**
+             * @brief returns the top of the queue for testing purposes.
+             * doesnt include guarding mechanisms.
+             * 
+             * @return void* 
+             */
+            void * top();
+            /**
+             * @brief returns the size of the queue for testing purposes.
+             * doesn't include guarding mechanisms.
+             * 
+             * @return size_t 
+             */
+            size_t Size();
     };
 }
 

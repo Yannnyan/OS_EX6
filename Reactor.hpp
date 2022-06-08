@@ -1,6 +1,9 @@
 
 #include <sys/select.h>
 
+#ifndef REACTOR_HPP_
+#define REACTOR_HPP_
+
 #define MAX_FDS 64
 
 #define REACTOR_SIZE sizeof(ex6::Reactor)
@@ -41,7 +44,7 @@ namespace ex6
 
 
 
-
+#endif
 
 
 
