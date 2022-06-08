@@ -4,7 +4,7 @@ headers = $(wildcard *.hpp)
 sources = $(wildcard *.cpp)
 objects = $(subst .cpp, .o, $(sources))
 
-all: Server
+all: Server Client selectServer selectClient
 
 selectServer: selectserver.o Reactor.o
 	$(cc) $^ -o $@ $(flags)
